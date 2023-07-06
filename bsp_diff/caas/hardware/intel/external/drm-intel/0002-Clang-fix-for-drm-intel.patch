@@ -1,0 +1,112 @@
+From 2831d9d6b03fa3102d5ed6b345ccf246728e92f3 Mon Sep 17 00:00:00 2001
+From: vdanix <vishwanathx.dani@intel.com>
+Date: Tue, 4 Jul 2023 15:46:58 +0530
+Subject: [PATCH] Clang fix for drm-intel
+
+Tracked-On:
+Signed-off-by: vdanix <vishwanathx.dani@intel.com>
+
+diff --git a/intel/intel_bufmgr_fake.c b/intel/intel_bufmgr_fake.c
+index 0cec51f5..91db341b 100644
+--- a/intel/intel_bufmgr_fake.c
++++ b/intel/intel_bufmgr_fake.c
+@@ -550,7 +550,9 @@ evict_lru(drm_intel_bufmgr_fake *bufmgr_fake, unsigned int max_fence)
+ 			return 0;
+ 
+ 		set_dirty(&bo_fake->bo);
+-		bo_fake->block = NULL;
++	       
++		if (bo_fake != NULL)
++		    bo_fake->block = NULL;
+ 
+ 		free_block(bufmgr_fake, block, 0);
+ 		return 1;
+@@ -573,6 +575,7 @@ evict_mru(drm_intel_bufmgr_fake *bufmgr_fake)
+ 			continue;
+ 
+ 		set_dirty(&bo_fake->bo);
++		if(bo_fake !=NULL)
+ 		bo_fake->block = NULL;
+ 
+ 		free_block(bufmgr_fake, block, 0);
+@@ -1032,11 +1035,12 @@ static int
+ 				bo_fake->dirty = 0;
+ 
+ 				if (!(bo_fake->flags & BM_NO_FENCE_SUBDATA) &&
+-				    bo_fake->block->fenced) {
++				    ((bo_fake->block !=NULL) && bo_fake->block->fenced)) {
+ 					drm_intel_fake_bo_wait_rendering_locked
+ 					    (bo);
+ 				}
+ 
++				if(bo_fake->block !=NULL)
+ 				bo->virtual = bo_fake->block->virtual;
+ 			}
+ 		} else {
+@@ -1185,7 +1189,8 @@ static int
+ 
+ 	assert(bo_fake->block);
+ 	assert(bo_fake->block->bo == &bo_fake->bo);
+-
++        
++	if (bo_fake->block!=NULL)
+ 	bo->offset = bo_fake->block->mem->ofs;
+ 
+ 	/* Upload the buffer contents if necessary */
+@@ -1204,20 +1209,24 @@ static int
+ 		/* we may never have mapped this BO so it might not have any
+ 		 * backing store if this happens it should be rare, but 0 the
+ 		 * card memory in any case */
+-		if (bo_fake->backing_store)
++		if (bo_fake->backing_store){
++			if(bo_fake->block !=NULL)
+ 			memcpy(bo_fake->block->virtual, bo_fake->backing_store,
+ 			       bo->size);
+-		else
++		}
++		else{
++			if(bo_fake->block !=NULL)
+ 			memset(bo_fake->block->virtual, 0, bo->size);
+-
++		}
+ 		bo_fake->dirty = 0;
+ 	}
+ 
++	if(bo_fake->block !=NULL){
+ 	bo_fake->block->fenced = 0;
+ 	bo_fake->block->on_hardware = 1;
+ 	DRMLISTDEL(bo_fake->block);
+ 	DRMLISTADDTAIL(bo_fake->block, &bufmgr_fake->on_hardware);
+-
++	}
+ 	bo_fake->validated = 1;
+ 	bufmgr_fake->need_fence = 1;
+ 
+diff --git a/intel/intel_bufmgr_gem.c b/intel/intel_bufmgr_gem.c
+index b28ea74d..00022947 100644
+--- a/intel/intel_bufmgr_gem.c
++++ b/intel/intel_bufmgr_gem.c
+@@ -1977,7 +1977,6 @@ drm_intel_bufmgr_gem_destroy(drm_intel_bufmgr *bufmgr)
+ 			bo_gem = DRMLISTENTRY(drm_intel_bo_gem,
+ 					      bucket->head.next, head);
+ 			DRMLISTDEL(&bo_gem->head);
+-
+ 			drm_intel_gem_bo_free(&bo_gem->bo);
+ 		}
+ 	}
+diff --git a/xf86drm.c b/xf86drm.c
+index 5933e4bc..1c5b0bc0 100644
+--- a/xf86drm.c
++++ b/xf86drm.c
+@@ -4461,7 +4461,7 @@ static void drmFoldDuplicatedDevices(drmDevicePtr local_devices[], int count)
+ 
+     for (i = 0; i < count; i++) {
+         for (j = i + 1; j < count; j++) {
+-            if (drmDevicesEqual(local_devices[i], local_devices[j])) {
++            if (drmDevicesEqual(local_devices[i], local_devices[j]) && local_devices[i] !=NULL) {
+                 local_devices[i]->available_nodes |= local_devices[j]->available_nodes;
+                 node_type = log2_int(local_devices[j]->available_nodes);
+                 memcpy(local_devices[i]->nodes[node_type],
+-- 
+2.41.0
+
