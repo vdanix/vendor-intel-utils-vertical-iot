@@ -1,0 +1,58 @@
+From 5ced3b51fa26f8e33a96837c539c36b2493b40c3 Mon Sep 17 00:00:00 2001
+From: celadon <celadon@intel.com>
+Date: Thu, 15 Feb 2024 05:43:02 +0000
+Subject: [PATCH] MR3RC02 removed patch to setup host issue
+
+Tracked-On: OAM-115627
+Signed-off-by: vdanix <vishwanathx.dani@intel.com>
+
+diff --git a/bsp_diff/caas/device/intel/civ/host/vm-manager/0039-Update-SRIOV-QEMU-patching.patch b/bsp_diff/caas/device/intel/civ/host/vm-manager/0039-Update-SRIOV-QEMU-patching.patch
+deleted file mode 100644
+index 9facf70..0000000
+--- a/bsp_diff/caas/device/intel/civ/host/vm-manager/0039-Update-SRIOV-QEMU-patching.patch
++++ /dev/null
+@@ -1,41 +0,0 @@
+-From 0e5ffb83d1691b16d090f9722c2521c5fce6f743 Mon Sep 17 00:00:00 2001
+-From: Basil Chew <basil.chew@intel.com>
+-Date: Mon, 30 Jan 2023 11:09:23 +0800
+-Subject: [PATCH] Update SRIOV QEMU patching
+-
+-Changes:
+-- added patching for SRIOV QEMU CVE patches
+-- updated SRIOV QEMU patch path
+-
+-Change-Id: Iae178053579f93b9a15c034e37946ef78481c9a4
+----
+- scripts/setup_host.sh | 12 ++++++++++--
+- 1 file changed, 10 insertions(+), 2 deletions(-)
+-
+-diff --git a/scripts/setup_host.sh b/scripts/setup_host.sh
+-index 98e5e46..7223f17 100755
+---- a/scripts/setup_host.sh
+-+++ b/scripts/setup_host.sh
+-@@ -71,9 +71,17 @@ function ubu_install_qemu_gvt(){
+-         for i in $CIV_GOP_DIR/qemu/*.patch; do patch -p1 < $i; done
+-     fi
+- 
+--    sriov_qemu_patch_num=$(ls $CIV_WORK_DIR/sriov_patches/qemu/*.patch 2> /dev/null | wc -l)
+-+    sriov_qemu_cve_patch_num=$(ls $CIV_WORK_DIR/sriov_patches/qemu/cve/*.patch 2> /dev/null | wc -l)
+-+    if [ "$sriov_qemu_cve_patch_num" != "0" ]; then
+-+        for i in $CIV_WORK_DIR/sriov_patches/qemu/cve/*.patch; do
+-+            echo "applying qemu patch $i"
+-+            patch -p1 < $i
+-+        done
+-+    fi
+-+
+-+    sriov_qemu_patch_num=$(ls $CIV_WORK_DIR/sriov_patches/qemu/qemu/*.patch 2> /dev/null | wc -l)
+-     if [ "$sriov_qemu_patch_num" != "0" ]; then
+--        for i in $CIV_WORK_DIR/sriov_patches/qemu/*.patch; do
+-+        for i in $CIV_WORK_DIR/sriov_patches/qemu/qemu/*.patch; do
+-             echo "applying qemu patch $i"
+-             patch -p1 < $i
+-         done
+--- 
+-2.39.1
+-
+-- 
+2.34.1
+
